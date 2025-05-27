@@ -1,6 +1,33 @@
-let orders = JSON.parse(localStorage.getItem('orders')) || [];
-let orderNumber = orders.length + 1;
+function addToOrder() {
+  const name = document.getElementById('studentName').value.trim();
+  const item = document.getElementById('item').value;
+  const amount = document.getElementById('paymentAmount').value;
 
+  if (!name || !item || !amount) {
+    alert('Please complete all fields.');
+    return;
+  }
+
+  const order = {
+    name,
+    items: [item], // backend expects an array of items
+    total: parseFloat(amount),
+    payment: parseFloat(amount),
+    change: 0 // update if you have change logic
+  };
+
+  fetch('http://localhost:3000/order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order)
+  })
+    .then(res => res.json())
+    .then(data => {
+      alert(`Order #${data.orderNumber} added!`);
+      clearInputs();
+    })
+    .catch(() => alert('Could not save order!'));
+}
 function addToOrder() {
   const name = document.getElementById('studentName').value.trim();
   const item = document.getElementById('item').value;
