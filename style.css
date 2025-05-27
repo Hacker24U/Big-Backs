@@ -1,0 +1,101 @@
+/* General Reset & Base */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #FF4E50, #F9D423);
+  color: #333;
+}
+
+/* Center content */
+.container {
+  max-width: 500px;
+  margin: 40px auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  padding: 30px;
+}
+
+/* Headers */
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #222;
+}
+
+/* Input fields */
+input[type="text"], input[type="password"], input[type="number"], select {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+/* Buttons */
+button {
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  color: white;
+  margin-right: 10px;
+  transition: all 0.3s ease;
+}
+
+button.login {
+  background-color: #28a745;
+}
+
+button.login:hover {
+  background-color: #218838;
+}
+
+button.add {
+  background-color: #f39c12;
+}
+
+button.add:hover {
+  background-color: #e67e22;
+}
+
+button.submit {
+  background-color: #e74c3c;
+  margin-top: 10px;
+  width: 100%;
+}
+
+button.submit:hover {
+  background-color: #c0392b;
+}
+
+/* Dropdown with animation */
+select {
+  appearance: none;
+  background: linear-gradient(to right, #ffe259, #ffa751);
+  border: none;
+  color: #333;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+}
+
+select:focus {
+  outline: none;
+  transform: scale(1.03);
+}
+
+/* Admin section */
+.admin-section {
+  margin-top: 40px;
+}
+
+#orderList {
+  background: #fafafa;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  margin-top: 15px;
+}
