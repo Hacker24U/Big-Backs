@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en"> 
+ <head> 
+  <link rel="stylesheet" href="styles.css"> 
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>Big Backs</title> 
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      padding: 20px; 
+      max-width: 800px; 
+      margin: auto;
+      line-height: 1.6;
+      background-color: #f9f9f9;
+    }
+    
+    h1, h2, h3 { color: #333; }
+    
+    input, select, button {
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    .admin-section { display: none; }
+    
+    table, th, td { 
+      border: 1px solid #ddd; 
+      border-collapse: collapse; 
+      padding: 8px; 
+    }
+    
+    table {
+      width: 100%;
+      margin: 15px 0;
+    }
+    
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    .menu-list { margin-top: 10px; }
+    
+    .edit-btn, .delete-btn { 
+      margin-left: 10px; 
+      cursor: pointer; 
+      color: blue; 
+      text-decoration: underline; 
+    }
+    
+    img.menu-image { 
+      width: 50px; 
+      height: 50px; 
+      object-fit: cover; 
+      vertical-align: middle; 
+      margin-right: 10px; 
+      border-radius: 4px;
+    }
+    
+    .notification {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      color: white;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+    }
+    
+    .success {
+      background-color: #4CAF50;
+    }
+    
+    .error {
+      background-color: #f44336;
+    }
+    
+    .order-summary {
+      background-color: #f2f2f2;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    
+    #confirmation {
+      background-color: #dff0d8;
+      color: #3c763d;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 15px;
+      display: none;
+    }
+    
+    .section {
+      background-color: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    
+    li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+  </style> 
+ </head> 
+ <body> 
+  <h1>School Lunch Ordering System</h1> <!-- Admin Login --> 
+  <div id="adminLogin" class="section"> 
+   <h2>Admin Login</h2> 
+   <input type="text" id="adminUser" placeholder="Username"> 
+   <input type="password" id="adminPass" placeholder="Password"> <button onclick="loginAdmin()">Login</button> 
+   <p id="adminLoginError" style="color:red;"></p> 
+  </div> <!-- Order Form --> 
+  <div id="orderForm" class="section"> 
+   <h2>Place Your Lunch Order</h2> 
+   <form id="lunchOrderForm" onsubmit="placeOrder(event)"> 
+    <input type="text" id="studentName" placeholder="Student Name" required> 
+    <br> <select id="menuItem"></select> 
+    <br> 
+    <input type="number" id="payment" placeholder="Payment Amount" step="0.01" min="0" required> 
+    <br> 
+    <div id="changeDisplay" style="margin: 5px 0;"></div> <button type="button" onclick="addToOrder()">Add to Order</button> <button type="submit">Submit Order</button> 
+   </form> 
+   <div id="orderSummary" class="order-summary"></div> 
+   <div id="confirmation"></div> 
+  </div> <!-- Admin Dashboard --> 
+  <div id="adminDashboard" class="admin-section section"> 
+   <div style="display: flex; justify-content: space-between; align-items: center;"> 
+    <h2>Admin Dashboard</h2> <button onclick="logoutAdmin()" style="background-color: #f44336;">Logout</button> 
+   </div> 
+   <h3>Orders</h3> 
+   <input type="text" id="orderSearch" placeholder="Search by name..." onkeyup="searchOrders()"> 
+   <table id="ordersTable"> 
+    <thead> 
+     <tr> 
+      <th>Order #</th> 
+      <th>Date</th> 
+      <th>Name</th> 
+      <th>Items</th> 
+      <th>Total</th> 
+      <th>Payment</th> 
+      <th>Change</th> 
+      <th>Actions</th> 
+     </tr> 
+    </thead> 
+    <tbody></tbody> 
+   </table> 
+   <h3>Menu Management</h3> 
+   <form id="menuForm" onsubmit="addMenuItem(event)"> 
+    <input type="text" id="newItem" placeholder="Item Name" required> 
+    <input type="number" id="newPrice" placeholder="Price (R)" step="0.01" min="0" required> 
+    <input type="text" id="newCategory" placeholder="Category (e.g., Drinks)" required> 
+    <input type="text" id="newImage" placeholder="Image URL (optional)"> <button type="submit">Add Item</button> 
+   </form> 
+   <div class="menu-list" id="menuList"></div> 
+  </div> 
+  <script>
+    // Initialize data in memory instead of localStorage
+    let orders = [];
+    let orderNumber = 1000;
+    let menu = {
+      // Main dishes
+      "Cheese Sandwich": { price: 25, category: "Main", image: "/api/placeholder/50/50" },
+      "Ham & Cheese Sandwich": { price: 30, category: "Main", image: "/api/placeholder/50/50" },
+      "Chicken Wrap": { price: 35, category: "Main", image: "/api/placeholder/50/50" },
+      "Veggie Wrap": { price: 30, category: "Main", image: "/api/placeholder/50/50" },
+      "Pasta Salad": { price: 40, category: "Main", image: "/api/placeholder/50/50" },
+      
+      // Drinks
+      "Orange Juice": { price: 15, category: "Drinks", image: "/api/placeholder/50/50" },
+      "Apple Juice": { price: 15, category: "Drinks", image: "/api/placeholder/50/50" },
+      "Water Bottle": { price: 10, category: "Drinks", image: "/api/placeholder/50/50" },
+      "Milk": { price: 12, category: "Drinks", image: "/api/placeholder/50/50" },
+      
+      // Snacks
+      "Fruit Cup": { price: 20, category: "Snacks", image: "/api/placeholder/50/50" },
+      "Yogurt": { price: 18, category: "Snacks", image: "/api/placeholder/50/50" },
+      "Granola Bar": { price: 15, category: "Snacks", image: "/api/placeholder/50/50" },
+      "Chips": { price: 12, category: "Snacks", image: "/api/placeholder/50/50" },
+      
+      // Desserts
+      "Chocolate Chip Cookie": { price: 10, category: "Desserts", image: "/api/placeholder/50/50" },
+      "Vanilla Cupcake": { price: 15, category: "Desserts", image: "/api/placeholder/50/50" }
+    };
+    let currentOrder = { items: [], totalAmount: 0 };
+
+    // Helper function to format currency
+    function formatCurrency(amount) {
+      return 'R' + parseFloat(amount).toFixed(2);
+    }
+
+    // Helper function to format date
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    }
+
+    // Initialize page
+    function initPage() {
+      updateMenuDropdown();
+      updateOrderSummary();
+    }
+
+    // Update menu dropdown
+    function updateMenuDropdown() {
+      const menuSelect = document.getElementById('menuItem');
+      menuSelect.innerHTML = '';
+      
+      // Sort menu items by category
+      const sortedItems = Object.entries(menu).sort((a, b) => {
+        if (a[1].category < b[1].category) return -1;
+        if (a[1].category > b[1].category) return 1;
+        return 0;
+      });
+      
+      let currentCategory = '';
+      
+      for (const [item, data] of sortedItems) {
+        // Add category optgroup if new category
+        if (data.category !== currentCategory) {
+          currentCategory = data.category;
+          const group = document.createElement('optgroup');
+          group.label = currentCategory;
+          menuSelect.appendChild(group);
+        }
+        
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = `${item} - ${formatCurrency(data.price)}`;
+        menuSelect.appendChild(option);
+      }
+    }
+
+    // Place order
+    function placeOrder(e) {
+      e.preventDefault();
+      const name = document.getElementById('studentName').value.trim();
+      
+      if (currentOrder.items.length === 0) {
+        showNotification("Please add at least one item to your order.", "error");
+        return;
+      }
+
+      // Calculate total
+      const totalPrice = calculateTotal();
+      const payment = parseFloat(document.getElementById('payment').value) || 0;
+      
+      if (payment < totalPrice) {
+        showNotification(`Insufficient payment. Total: ${formatCurrency(totalPrice)}`, "error");
+        return;
+      }
+
+      // Create order with incremented order number
+      const currentOrderNumber = orderNumber++;
+      
+      const order = { 
+        orderNumber: currentOrderNumber,
+        date: new Date().toISOString(), 
+        name, 
+        items: [...currentOrder.items], 
+        total: totalPrice,
+        payment: payment,
+        change: payment - totalPrice
+      };
+      
+      orders.push(order);
+
+      // Show confirmation
+      const confirmation = document.getElementById('confirmation');
+      confirmation.innerHTML = `
+        Order placed!<br>
+        Order Number: <strong>${currentOrderNumber}</strong><br>
+        Items: ${currentOrder.items.join(", ")}<br>
+        Total: ${formatCurrency(totalPrice)}<br>
+        Payment: ${formatCurrency(payment)}<br>
+        Change: ${formatCurrency(payment - totalPrice)}
+      `;
+      confirmation.style.display = 'block';
+      
+      // Reset form
+      document.getElementById('lunchOrderForm').reset();
+      currentOrder = { items: [], totalAmount: 0 };
+      updateOrderSummary();
+      updateOrdersTable();
+      
+      // Auto-hide confirmation after 5 seconds
+      setTimeout(() => {
+        confirmation.style.display = 'none';
+      }, 5000);
+    }
+
+    // Calculate total price of order
+    function calculateTotal() {
+      return currentOrder.items.reduce((acc, item) => acc + menu[item].price, 0);
+    }
+
+    // Add item to order
+    function addToOrder() {
+      const menuSelect = document.getElementById('menuItem');
+      const item = menuSelect.value;
+      
+      if (!item) {
+        showNotification("Please select an item.", "error");
+        return;
+      }
+
+      // Add to order
+      currentOrder.items.push(item);
+      updateOrderSummary();
+      
+      // Show notification
+      showNotification(`Added ${item} to your order.`, "success");
+      
+      // Update potential change
+      updateChangeDisplay();
+    }
+
+    // Update the change display
+    function updateChangeDisplay() {
+      const payment = parseFloat(document.getElementById('payment').value) || 0;
+      const total = calculateTotal();
+      const change = payment - total;
+      
+      const changeDisplay = document.getElementById('changeDisplay');
+      
+      if (payment > 0) {
+        if (change >= 0) {
+          changeDisplay.innerHTML = `Change: ${formatCurrency(change)}`;
+          changeDisplay.style.color = 'green';
+        } else {
+          changeDisplay.innerHTML = `Insufficient payment: ${formatCurrency(Math.abs(change))} more needed`;
+          changeDisplay.style.color = 'red';
+        }
+      } else {
+        changeDisplay.innerHTML = '';
+      }
+    }
+
+    // Update order summary
+    function updateOrderSummary() {
+      const orderSummary = document.getElementById('orderSummary');
+      
+      if (currentOrder.items.length === 0) {
+        orderSummary.innerHTML = '<p>No items in your order yet.</p>';
+        return;
+      }
+      
+      // Count occurrences of items
+      const itemCounts = {};
+      currentOrder.items.forEach(item => {
+        itemCounts[item] = (itemCounts[item] || 0) + 1;
+      });
+      
+      // Build item list
+      const itemsList = Object.entries(itemCounts).map(([item, count]) => {
+        const price = menu[item].price;
+        return `${count} × ${item} (${formatCurrency(price)} each) = ${formatCurrency(price * count)}`;
+      }).join('<br>');
+      
+      // Calculate total
+      const total = calculateTotal();
+      
+      orderSummary.innerHTML = `
+        <strong>Order Summary:</strong><br>
+        ${itemsList}<br>
+        <strong>Total: ${formatCurrency(total)}</strong>
+      `;
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
+    // Admin login
+    function loginAdmin() {
+      const user = document.getElementById('adminUser').value;
+      const pass = document.getElementById('adminPass').value;
+
+      if (user === 'admin' && pass === 'password123') {
+        document.getElementById('adminLogin').style.display = 'none';
+        document.getElementById('orderForm').style.display = 'none';
+        document.getElementById('adminDashboard').style.display = 'block';
+        updateOrdersTable();
+        updateMenuList();
+      } else {
+        document.getElementById('adminLoginError').innerText = 'Incorrect credentials';
+        
+        // Clear the error after 3 seconds
+        setTimeout(() => {
+          document.getElementById('adminLoginError').innerText = '';
+        }, 3000);
+      }
+    }
+
+    // Admin logout
+    function logoutAdmin() {
+      document.getElementById('adminLogin').style.display = 'block';
+      document.getElementById('orderForm').style.display = 'block';
+      document.getElementById('adminDashboard').style.display = 'none';
+      document.getElementById('adminLoginError').innerText = '';
+    }
+
+    // Update orders table
+    function updateOrdersTable() {
+      const tbody = document.getElementById('ordersTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      
+      // Sort orders by order number (newest first)
+      const sortedOrders = [...orders].sort((a, b) => b.orderNumber - a.orderNumber);
+      
+      sortedOrders.forEach(order => {
+        const row = document.createElement('tr');
+        
+        // Count occurrences of items
+        const itemCounts = {};
+        order.items.forEach(item => {
+          itemCounts[item] = (itemCounts[item] || 0) + 1;
+        });
+        
+        // Format items list
+        const itemsList = Object.entries(itemCounts).map(([item, count]) => 
+          count > 1 ? `${count} × ${item}` : item
+        ).join(", ");
+        
+        row.innerHTML = `
+          <td>${order.orderNumber}</td>
+          <td>${order.date ? formatDate(order.date) : 'N/A'}</td>
+          <td>${order.name}</td>
+          <td>${itemsList}</td>
+          <td>${order.total ? formatCurrency(order.total) : formatCurrency(calculateOrderTotal(order.items))}</td>
+          <td>${order.payment ? formatCurrency(order.payment) : 'N/A'}</td>
+          <td>${order.change ? formatCurrency(order.change) : 'N/A'}</td>
+          <td><button class="delete-btn" onclick="deleteOrder(${order.orderNumber})">Delete</button></td>
+        `;
+        
+        tbody.appendChild(row);
+      });
+    }
+
+    // Calculate total for an order
+    function calculateOrderTotal(items) {
+      return items.reduce((acc, item) => {
+        // Check if item still exists in menu
+        return acc + (menu[item] ? menu[item].price : 0);
+      }, 0);
+    }
+
+    // Delete order
+    function deleteOrder(orderNum) {
+      if (confirm(`Are you sure you want to delete order #${orderNum}?`)) {
+        orders = orders.filter(order => order.orderNumber !== orderNum);
+        updateOrdersTable();
+        showNotification(`Order #${orderNum} has been deleted.`, "success");
+      }
+    }
+
+    // Search orders
+    function searchOrders() {
+      const searchTerm = document.getElementById('orderSearch').value.toLowerCase();
+      const rows = document.getElementById('ordersTable').querySelectorAll('tbody tr');
+      
+      rows.forEach(row => {
+        const name = row.cells[2].textContent.toLowerCase();
+        if (name.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    // Add menu item
+    function addMenuItem(e) {
+      e.preventDefault();
+      const item = document.getElementById('newItem').value.trim();
+      const price = parseFloat(document.getElementById('newPrice').value);
+      const category = document.getElementById('newCategory').value.trim();
+      const image = document.getElementById('newImage').value.trim() || "/api/placeholder/50/50";
+
+      if (!item || isNaN(price) || !category) {
+        showNotification("Please fill out all required fields.", "error");
+        return;
+      }
+
+      if (menu[item] && !confirm(`Item ${item} already exists. Overwrite?`)) return;
+      
+      menu[item] = { price, category, image };
+
+      // Reset form
+      document.getElementById('menuForm').reset();
+
+      updateMenuDropdown();
+      updateMenuList();
+      showNotification(`Menu item "${item}" has been added.`, "success");
+    }
+
+    // Update menu list
+    function updateMenuList() {
+      const menuList = document.getElementById('menuList');
+      
+      // Group by category
+      const categories = {};
+      Object.entries(menu).forEach(([item, data]) => {
+        if (!categories[data.category]) {
+          categories[data.category] = [];
+        }
+        categories[data.category].push({ name: item, ...data });
+      });
+      
+      // Build HTML
+      let html = '';
+      
+      for (const [category, items] of Object.entries(categories)) {
+        html += `<h4>${category}</h4><ul>`;
+        
+        items.sort((a, b) => a.name.localeCompare(b.name)).forEach(item => {
+          html += `
+            <li>
+              ${item.image ? `<img src="${item.image}" class="menu-image" alt="${item.name}" />` : ''}
+              <strong>${item.name}</strong> - ${formatCurrency(item.price)}
+              <span class="edit-btn" onclick="editMenuItem('${item.name}')">Edit</span>
+              <span class="delete-btn" onclick="deleteMenuItem('${item.name}')">Delete</span>
+            </li>`;
+        });
+        
+        html += '</ul>';
+      }
+      
+      menuList.innerHTML = html;
+    }
+
+    // Delete menu item
+    function deleteMenuItem(item) {
+      if (confirm(`Are you sure you want to delete "${item}" from the menu?`)) {
+        delete menu[item];
+        updateMenuDropdown();
+        updateMenuList();
+        showNotification(`Menu item "${item}" has been deleted.`, "success");
+      }
+    }
+
+    // Edit menu item
+    function editMenuItem(item) {
+      const newPrice = prompt(`Enter new price for ${item}:`, menu[item].price);
+      if (newPrice !== null) {
+        const price = parseFloat(newPrice);
+        if (!isNaN(price)) menu[item].price = price;
+      }
+
+      const newCategory = prompt(`Enter new category for ${item}:`, menu[item].category);
+      if (newCategory !== null) menu[item].category = newCategory.trim();
+
+      const newImage = prompt(`Enter image URL for ${item}:`, menu[item].image);
+      if (newImage !== null) menu[item].image = newImage.trim() || "/api/placeholder/50/50";
+
+      updateMenuDropdown();
+      updateMenuList();
+      showNotification(`Menu item "${item}" has been updated.`, "success");
+    }
+
+    // Event listeners
+    document.getElementById('payment').addEventListener('input', updateChangeDisplay);
+
+    // Initialize page
+    initPage();
+  </script> 
+  <script src="script.js"></script> 
+ </body>
+</html>
